@@ -1,6 +1,7 @@
 #!/usr/local/bin/python
 import wx
 import wx.lib.mixins.listctrl as listmix
+from operator import lt
 
 from pstats import Stats, f8, func_std_string
 import os
@@ -23,12 +24,12 @@ class CustColumnSorterMixin(wx.lib.mixins.listctrl.ColumnSorterMixin):
         if type(item1) == type('') or type(item2) == type(''):
             cmpVal = locale.strcoll(str(item1), str(item2))
         else:
-            cmpVal = cmp(item1, item2)
+            cmpVal = -1 if lt(item1, item2) else 1
         #---
 
         # If the items are equal then pick something else to make the sort value unique
         if cmpVal == 0:
-            cmpVal = cmp(*self.GetSecondarySortValues(col, key1, key2))
+            cmpVal = -1 if lt(*self.GetSecondarySortValues(col, key1, key2)) else 1
 
         if ascending:
             return cmpVal
@@ -51,9 +52,8 @@ class PageOne(wx.ListCtrl, CustColumnSorterMixin):
         return self
 
     def show(self):
-        self.DeleteAllItems()
         r = 0
-        for k, v in self.itemDataMap.iteritems():
+        for k, v in iter(self.itemDataMap.items()):
             self.InsertStringItem(r, v[0])
             self.SetStringItem(r,1, v[1])
             self.SetStringItem(r,2,f8(v[2]))
@@ -62,13 +62,12 @@ class PageOne(wx.ListCtrl, CustColumnSorterMixin):
             self.SetStringItem(r,5,f8(v[5]))
             self.SetItemData(r, r)
             r = r + 1
-        self.SetItemCount(len(self.itemDataMap))
-
 
     def set_stats(self, stats):
         self.stats = stats
         self.itemDataMap.clear()
-        width, list = self.stats.get_print_list({})
+        self.DeleteAllItems()
+        width, list = self.stats.get_print_list([])
         r = 0
         if list:
             for func in list:
@@ -78,7 +77,6 @@ class PageOne(wx.ListCtrl, CustColumnSorterMixin):
                 if nc != cc:
                     c = c + '/' + str(cc)
                 self.itemDataMap[r] = (name, c, tt, float(tt)/nc, ct, float(ct)/cc)
-                self.SetItemData(r, r)
                 r += 1
         self.show()
 
@@ -99,19 +97,18 @@ class FuncList(wx.ListCtrl, CustColumnSorterMixin):
     def show(self):
         self.DeleteAllItems()
         r = 0
-        for k, v in self.itemDataMap.iteritems():
+        for k, v in iter(self.itemDataMap.items()):
             self.InsertStringItem(r, v[0])
             self.SetStringItem(r,1, v[1])
             self.SetStringItem(r,2,f8(v[2]))
             self.SetStringItem(r,3,f8(v[3]))
             self.SetItemData(r, r)
             r = r + 1
-        self.SetItemCount(len(self.itemDataMap))
         self.SortListItems(3, 0)
 
     def fill_rows(self, call_dict):
         r = self.GetItemCount()
-        for func, v in call_dict.iteritems():
+        for func, v in iter(call_dict.items()):
             name = func_std_string(func)
             if isinstance(v, tuple):
                 nc, cc, tt, ct = v
@@ -186,6 +183,7 @@ class ViewerNotebook(wx.Notebook):
 
 
     def set_stats(self, stat):
+        self.ChangeSelection(0)
         self.tabOne.set_stats(stat)
         self.tabTow.set_stats(stat)
 
@@ -243,7 +241,7 @@ class Viewer(wx.Frame):
 
     def OnOpen(self,e):
         """ Open a file"""
-        dlg = wx.FileDialog(self, "Choose a file", "", "", "*.*", wx.OPEN)
+        dlg = wx.FileDialog(self, "Choose a file", "", "", "*.*", wx.FD_OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetFilename()
             dirname = dlg.GetDirectory()
