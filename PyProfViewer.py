@@ -1,3 +1,4 @@
+#!/usr/local/bin/python
 import wx
 import wx.lib.mixins.listctrl as listmix
 
@@ -66,7 +67,7 @@ class PageOne(wx.ListCtrl, CustColumnSorterMixin):
 
     def set_stats(self, stats):
         self.stats = stats
-        self.itemDataMap = {}
+        self.itemDataMap.clear()
         width, list = self.stats.get_print_list({})
         r = 0
         if list:
@@ -145,6 +146,9 @@ class PageTwo(wx.Panel):
         self.clear()
 
     def clear(self):
+        self.list1.itemDataMap.clear()
+        self.list2.itemDataMap.clear()
+        self.list3.itemDataMap.clear()
         self.list1.DeleteAllItems()
         self.list2.DeleteAllItems()
         self.list3.DeleteAllItems()
@@ -181,18 +185,9 @@ class ViewerNotebook(wx.Notebook):
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.show_stack, self.tabOne)
 
 
-    def open_stats(self):
-        """ Open a file"""
-        dlg = wx.FileDialog(self, "Choose a file", "", "", "*.*", wx.OPEN)
-        if dlg.ShowModal() == wx.ID_OK:
-            self.filename = dlg.GetFilename()
-            self.dirname = dlg.GetDirectory()
-            stat = Stats(os.path.join(self.dirname, self.filename))
-            stat.strip_dirs()
-            stat.sort_stats("cumulative")
-            self.tabOne.set_stats(stat)
-            self.tabTow.set_stats(stat)
-        dlg.Destroy()
+    def set_stats(self, stat):
+        self.tabOne.set_stats(stat)
+        self.tabTow.set_stats(stat)
 
     def show_stack(self, event):
         self.ChangeSelection(1)
@@ -220,7 +215,7 @@ class Viewer(wx.Frame):
         self.Layout()
 
         self.create_menu()
-        self.CreateStatusBar()
+        self.status_bar = self.CreateStatusBar()
  
         self.Show()
 
@@ -247,7 +242,20 @@ class Viewer(wx.Frame):
         self.Close(True)  # Close the frame.
 
     def OnOpen(self,e):
-        self.notebook.open_stats()
+        """ Open a file"""
+        dlg = wx.FileDialog(self, "Choose a file", "", "", "*.*", wx.OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            filename = dlg.GetFilename()
+            dirname = dlg.GetDirectory()
+            filepath = os.path.join(dirname, filename)
+            self.status_bar.SetStatusText(filepath)
+
+            stat = Stats(filepath)
+            stat.strip_dirs()
+            stat.sort_stats("cumulative")
+            self.notebook.set_stats(stat)
+        dlg.Destroy()
+
  
 #----------------------------------------------------------------------
 if __name__ == "__main__":
