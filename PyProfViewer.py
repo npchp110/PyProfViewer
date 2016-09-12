@@ -7,6 +7,7 @@ from pstats import Stats, f8, func_std_string, func_strip_path
 import os, sys
 import locale
 
+py_v = sys.version_info[0]
 STRIPE_DIR = True
 
 class CustColumnSorterMixin(wx.lib.mixins.listctrl.ColumnSorterMixin):
@@ -260,9 +261,7 @@ class Viewer(wx.Frame):
  
 #----------------------------------------------------------------------
 if __name__ == "__main__":
-    name = "Python Profile Viewer"
-    if len(sys.argv) > 1:
-        name = "%s %s" % (name ,sys.argv[1])
+    name = "Python Profile Viewer %d" % py_v
     app = wx.App(False)
     frame = Viewer(name)
     app.MainLoop()
